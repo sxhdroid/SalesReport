@@ -268,6 +268,7 @@ def build_achievement(m, cb_log=None, remark='小红'):
                 goods_container = row_item.find_all('div', attrs={'class': 'row-item'})  # 获取商品列表容器
                 money = 0.0  # 订单总价
                 out_of_stock_money = 0.0  # 缺货金额
+                vivi_money = 0.0  # VIVIrain 包
                 zypp_money = 0.0  # 自用品牌金额
                 zypp_real_money = 0.0  # 自用品牌真实金额
                 for goods in goods_container:
@@ -290,12 +291,14 @@ def build_achievement(m, cb_log=None, remark='小红'):
 
                     if re.search(r"(悦薇娅)|(ECEC)", goods_name) and not is_refund:  # 是否包含有’ECEC‘和’悦薇娅‘产品
                         zypp_money += price  # 自用品牌销售额
+                    elif re.search(r".*VIVIrain.*包.*", goods_name):  # VIVIrain 品牌包
+                        vivi_money += price  # 销售额
                     zypp_real_money = zypp_money  # 实际金额
 
                 # 组装行数据
                 order_dict = {"订单号": order_id, "订单金额": money, '缺货金额': out_of_stock_money,
-                              '实际金额': money - out_of_stock_money, '自用品牌销售额': zypp_money,
-                              '实际金额 ': zypp_real_money
+                              '实际金额': money - out_of_stock_money, 'VIVIrain 包': vivi_money,
+                              '自用品牌销售额': zypp_money, '实际金额 ': zypp_real_money
                               }
                 # print(order_dict)
                 order_chat.append(order_dict)
@@ -306,7 +309,7 @@ def build_achievement(m, cb_log=None, remark='小红'):
     try:
         from pandas import DataFrame
         df = DataFrame(data=order_chat)
-        df.to_excel(fname, index=False, columns=["订单号", "订单金额", '缺货金额', '实际金额', '自用品牌销售额', '实际金额 '])
+        df.to_excel(fname, index=False, columns=["订单号", "订单金额", '缺货金额', '实际金额', 'VIVIrain 包', '自用品牌销售额', '实际金额 '])
         cb_log('导出优海淘业绩完成')
     except Exception as e:
         print('保存业绩表出错', e)

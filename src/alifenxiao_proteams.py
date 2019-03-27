@@ -97,12 +97,18 @@ def load_order(create_b_date, create_e_date, u_name, page_size='50'):
     orders = []
     # 分页查询指定月份的订单
     doc = get_order(create_b_date=create_b_date, create_e_date=create_e_date, u_name=u_name, page_size=page_size)
+    if doc is None:  # retry
+        doc = get_order(create_b_date=create_b_date, create_e_date=create_e_date, u_name=u_name, page_size=page_size)
+        if doc is None:
+            return orders
     time.sleep(0.2)
     bs_obj = BeautifulSoup(doc, 'html.parser')  # 获取页面内容转化为bs对象
     # 获取订单总数
     total_text = bs_obj.findAll(name='td', text=re.compile(r'共\d+条'))[0].text
     total = int(re.findall(r'\d+', total_text)[0])
     print('客户%s的订单条数为%s' % (u_name, total))
+    if total == 0:
+        return orders
     mod = 0 if total % int(page_size) == 0 else 1
     # 计算总页数
     total_pages = total // int(page_size) + mod
@@ -196,19 +202,26 @@ def build_row(order_id):
         out_of_stock_price = re.findall(r'\d+\.?\d*', re.findall(r"(退款\d+\.?\d*)", remark)[0])[0]  # 取出退款金额
     goods_a_tags = goods.find_all('a', attrs={'href': re.compile('^../index.php*'), 'target': '_blank'})  # 获取商品链接
     zypp_money = 0.0
+    vivi_money = 0.0
     for tag_a in goods_a_tags:
         if re.search(r"(悦薇娅)|(ECEC)", tag_a.text):  # 是否包含有’ECEC‘和’悦薇娅‘产品
             tds = tag_a.parent.parent.find_all('td', attrs={'class': 'Colamount'})  # 获取产品价格和数量单元格
             goods_price = float(tds[0].get_text().strip())  # 商品价格
             goods_count = int(tds[1].get_text().strip())  # 购买数量
             zypp_money += goods_price * goods_count  # 自用品牌销售额
+        elif re.search(r".*VIVIrain.*包.*", tag_a.text):  # VIVIrain 品牌包
+            tds = tag_a.parent.parent.find_all('td', attrs={'class': 'Colamount'})  # 获取产品价格和数量单元格
+            goods_price = float(tds[0].get_text().strip())  # 商品价格
+            goods_count = int(tds[1].get_text().strip())  # 购买数量
+            vivi_money += goods_price * goods_count  # 销售额
+    vivi_money = float('%.2f' % vivi_money)
     zypp_money = float('%.2f' % zypp_money)
     zypp_real_money = zypp_money  # 实际金额
 
     # 组装行数据
     order_dict = {"订单号": order_id, "订单金额": float(price),
                     '缺货金额': out_of_stock_price, '实际金额': float(price) - float(out_of_stock_price),
-                    '自用品牌销售额': zypp_money, '实际金额 ': zypp_real_money}
+                    'VIVIrain 包': vivi_money, '自用品牌销售额': zypp_money, '实际金额 ': zypp_real_money}
     return order_dict
 
 
@@ -225,18 +238,21 @@ def start(m, remark, cb_log=None):
     fname = ''
     if m == 0:
         month, year = getLastMonths()
-        cb_log('导出%d年%d月的业绩' % (year, month))
+        if cb_log:
+            cb_log('导出%d年%d月的业绩' % (year, month))
         fname = '{year}-{month}月阿里分销业绩.xls'.format(year=year, month=month)
         create_b_date = '{year}-{month}-1'.format(year=year, month=month)  # 设置查询的起始时间
         cu_month, cu_year = getMonths()  # 获取当前月份
         create_e_date = '{year}-{month}-1'.format(year=cu_year, month=cu_month)  # 设置查询结束时间
     elif m == 1:
         cu_month, cu_year = getMonths()  # 获取当前月份
-        cb_log('导出%d年%d月的业绩' % (cu_year, cu_month))
+        if cb_log:
+            cb_log('导出%d年%d月的业绩' % (cu_year, cu_month))
         fname = '{year}-{month}月阿里分销业绩.xls'.format(year=cu_year, month=cu_month)
         create_b_date = '{year}-{month}-1'.format(year=cu_year, month=cu_month)  # 设置查询开始时间
         create_e_date = '{year}-{month}-{day}'.format(year=cu_year, month=cu_month, day=getDays(cu_month, cu_year)[1])  # 设置查询结束时间
     all_customers = customers(remark, cb_log)  # 先取得维护的客户列表
+    # all_customers = ['449372431']
     if all_customers is None:
         return
     order_chat = list()  # 业绩数据
@@ -258,7 +274,7 @@ def start(m, remark, cb_log=None):
     try:
         # 生成业绩表
         df = DataFrame(data=order_chat)
-        df.to_excel(fname, index=False, columns=["订单号", "订单金额", '缺货金额', '实际金额', '自用品牌销售额', '实际金额 '])
+        df.to_excel(fname, index=False, columns=["订单号", "订单金额", '缺货金额', '实际金额', 'VIVIrain 包', '自用品牌销售额', '实际金额 '])
     except Exception as e:
         print('保存业绩表出错', e)
         cb_log('保存业绩表出错')
