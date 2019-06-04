@@ -34,7 +34,7 @@ from src.datautil import *
 
 headers = {
         'Cookie': '_EP=e8cfb4cec7de; SHOPEX_SID=4ca79540a9deda7147126d7f0128799a; PHPSESSID=rh2jnne2988ppu62077iqmquj5; q1._-=81361354',
-        'Host': 'www.alifenxiao.com', 'Referer': 'http://www.alifenxiao.com/shopadmin/index.php',
+        'Host': 'www.alifenxiao.cn', 'Referer': 'http://www.alifenxiao.cn/shopadmin/index.php',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'
 }
 
@@ -44,8 +44,8 @@ flag_stop = False
 def get_order(create_b_date, create_e_date, u_name, page_size='50'):
     from urllib import parse
     u_name = parse.quote(u_name)
-    # order_list_url = 'http://www.alifenxiao.com/shopadmin/index.php?ctl=order/order&act=index&_ajax=true&_h=560&_w=997&_wg=undefined'
-    order_list_url = 'http://www.alifenxiao.com/shopadmin/index.php?ctl=order/order&view=&act=finder&p[0]=&p[1]=&p[2]=' \
+    # order_list_url = 'http://www.alifenxiao.cn/shopadmin/index.php?ctl=order/order&act=index&_ajax=true&_h=560&_w=997&_wg=undefined'
+    order_list_url = 'http://www.alifenxiao.cn/shopadmin/index.php?ctl=order/order&view=&act=finder&p[0]=&p[1]=&p[2]=' \
                      '&p[3]=window.finder[%274fddc9%27]&p[4]=' + page_size + '&page=1&_finder[view]=' \
                      '&_finder[select]=multi&_finder[id]=order_id&_finder[type]=&_finder[withTools]=true' \
                      '&_finder[editMode]=&0=&create_b_date=' + create_b_date + '&create_e_date=' + create_e_date + \
@@ -66,7 +66,7 @@ def get_detail(order_id):
     if order_id is None:
         return None
     try:
-        detail_info_url = 'http://www.alifenxiao.com/shopadmin/index.php?ctl=order/order&act=detail&p[0]=' \
+        detail_info_url = 'http://www.alifenxiao.cn/shopadmin/index.php?ctl=order/order&act=detail&p[0]=' \
                       + order_id + '&_ajax=true&_h=600&_w=853&_wg=order'
         detail_request = request.Request(url=detail_info_url, headers=headers)
         doc = request.urlopen(detail_request)
@@ -82,7 +82,7 @@ def get_goods(order_id):
     if order_id is None:
         return None
     try:
-        goods_info_url = 'http://www.alifenxiao.com/shopadmin/index.php?ctl=order/order&act=detail_items' \
+        goods_info_url = 'http://www.alifenxiao.cn/shopadmin/index.php?ctl=order/order&act=detail_items' \
                          '&p[0]=' + order_id + '&_ajax=true&_h=560&_w=853&_wg=order'
         detail_request = request.Request(url=goods_info_url, headers=headers)
         doc = request.urlopen(detail_request)
@@ -136,7 +136,7 @@ def load_order(create_b_date, create_e_date, u_name, page_size='50'):
 def __get_customer(index='1', page_size='50', remark='小红'):
     from urllib import parse
     remark = parse.quote(remark)
-    request_url = 'http://www.alifenxiao.com/shopadmin/index.php?ctl=distributor/fenxiaomember&view=' \
+    request_url = 'http://www.alifenxiao.cn/shopadmin/index.php?ctl=distributor/fenxiaomember&view=' \
                   '&act=finder&p[0]=&p[1]=&p[2]=&p[3]=window.finder[%27640a24%27]&p[4]=' + page_size +'&page=' + index + \
                   '&_finder[view]=&_finder[select]=multi&_finder[id]=member_id&_finder[type]=' \
                   '&_finder[withTools]=true&_finder[editMode]=&confirm=1&coo_params=1&area=&minregtime=' \
@@ -226,7 +226,7 @@ def build_row(order_id):
 
 
 def start(m, remark, cb_log=None):
-    cookie = get_cookie('.alifenxiao.com')
+    cookie = get_cookie('.alifenxiao.cn')
     print('cookie %s' % cookie)
     if cookie is None:
         cb_log('获取登陆信息失败，请使用Chrome浏览器登陆后重试')
@@ -263,7 +263,9 @@ def start(m, remark, cb_log=None):
             return
         if cb_log:
             cb_log('正在导出业绩数据...%d/%d' % (i, tot))
-            i += 1
+        else:
+            print('正在导出业绩数据...%d/%d' % (i, tot))
+        i += 1
         # 根据每个用户查询订单
         order_ids = load_order(create_b_date=create_b_date, create_e_date=create_e_date, u_name=customer, page_size=str(page_size))
         for order_id in order_ids:
@@ -272,6 +274,10 @@ def start(m, remark, cb_log=None):
             order_chat.append(build_row(order_id))
 
     try:
+        if len(order_chat) == 0:
+            if cb_log:
+                cb_log('无订单数据')
+            return
         # 生成业绩表
         df = DataFrame(data=order_chat)
         df.to_excel(fname, index=False, columns=["订单号", "订单金额", '缺货金额', '实际金额', 'VIVIrain 包', '自用品牌销售额', '实际金额 '])
