@@ -176,14 +176,14 @@ def get_orders(member, start_date, end_date, page_index='1'):
 
 
 # 生成业绩表
-def build_achievement(m, cb_log=None, remark='小红'):
+def build_achievement(m, cb_log=None, remark='1UAHP'):
     cookie = get_cookie('sp.mai2.cc')
     if cookie is None:
         if cb_log:
             cb_log('获取登陆信息失败，请使用Chrome浏览器重新登陆海淘后重试')
         return
     headers['Cookie'] = "mmzl_sp=%s" % cookie
-    members = get_proteams(cb_log=cb_log)  # 所有代理商
+    members = get_proteams(cb_log=cb_log, remark=remark)  # 所有代理商
     # import pandas as pd
     # members = pd.read_excel('./优海淘会员列表.xls')['团员联系方式']
     # members = ['15107478373']
