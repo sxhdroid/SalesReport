@@ -183,7 +183,7 @@ def build_achievement(m, cb_log=None, remark='小红'):
             cb_log('获取登陆信息失败，请使用Chrome浏览器重新登陆海淘后重试')
         return
     headers['Cookie'] = "mmzl_sp=%s" % cookie
-    members = get_proteams(cb_log=cb_log, remark=remark)  # 所有代理商
+    members = get_proteams(cb_log=cb_log)  # 所有代理商
     # import pandas as pd
     # members = pd.read_excel('./优海淘会员列表.xls')['团员联系方式']
     # members = ['15107478373']
@@ -199,13 +199,15 @@ def build_achievement(m, cb_log=None, remark='小红'):
     fname = ''
     if m == 0:
         month, year = getLastMonths()
-        cb_log('导出%d年%d月的业绩' % (year, month))
+        if cb_log:
+            cb_log('导出%d年%d月的业绩' % (year, month))
         fname = '{year}-{month}月优海淘业绩.xls'.format(year=year, month=month)
         start_date = '{year}-{month}-1'.format(year=year, month=month)  # 设置查询的起始时间
         end_date = '{year}-{month}-{day}'.format(year=year, month=month, day=getDays(month, year)[1])  # 设置查询结束时间
     elif m == 1:
         cu_month, cu_year = getMonths()  # 获取当前月份
-        cb_log('导出%d年%d月的业绩' % (cu_year, cu_month))
+        if cb_log:
+            cb_log('导出%d年%d月的业绩' % (cu_year, cu_month))
         fname = '{year}-{month}月优海淘业绩.xls'.format(year=cu_year, month=cu_month)
         start_date = '{year}-{month}-1'.format(year=cu_year, month=cu_month)  # 设置查询开始时间
         end_date = '{year}-{month}-{day}'.format(year=cu_year, month=cu_month, day=getDays(cu_month, cu_year)[1])  # 设置查询结束时间
@@ -310,7 +312,8 @@ def build_achievement(m, cb_log=None, remark='小红'):
         from pandas import DataFrame
         df = DataFrame(data=order_chat)
         df.to_excel(fname, index=False, columns=["订单号", "订单金额", '缺货金额', '实际金额', 'VIVIrain 包', '自用品牌销售额', '实际金额 '])
-        cb_log('导出优海淘业绩完成')
+        if cb_log:
+            cb_log('导出优海淘业绩完成')
     except Exception as e:
         print('保存业绩表出错', e)
         if cb_log:
